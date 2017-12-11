@@ -95,7 +95,7 @@ public class PluginManager {
         Systems.sHostContext = getHostContext();
         this.hookInstrumentationAndHandler();
         if (Build.VERSION.SDK_INT >= 26) {
-            this.hookAMSForO();
+            this.hookAMSForAPI26();
         } else {
             this.hookSystemServices();
         }
@@ -116,6 +116,7 @@ public class PluginManager {
 
     /**
      * hookSystemServices, but need to compatible with Android O in future.
+     * API26 以后 ActivityManagerNative 类将会被移除，查看
      */
     private void hookSystemServices() {
         try {
@@ -133,8 +134,10 @@ public class PluginManager {
         }
     }
 
-
-    private void hookAMSForO() {
+    /**
+     * API26 以后 ActivityManagerNative 类将会被移除，原本获取IActivityManager的类被替换为ActivityManager.getService()
+     */
+    private void hookAMSForAPI26() {
         try {
             Singleton<IActivityManager> defaultSingleton = (Singleton<IActivityManager>) ReflectUtil.getField(ActivityManager.class, null, "IActivityManagerSingleton");
             IActivityManager activityManagerProxy = ActivityManagerProxy.newInstance(this, defaultSingleton.get());

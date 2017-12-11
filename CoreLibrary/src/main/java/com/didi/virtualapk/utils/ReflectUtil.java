@@ -16,10 +16,12 @@
 
 package com.didi.virtualapk.utils;
 
+import android.app.ActivityThread;
 import android.app.Instrumentation;
 import android.content.Context;
 import android.os.Handler;
 import android.support.annotation.UiThread;
+import android.util.Log;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -108,15 +110,20 @@ public class ReflectUtil {
     public static Object getActivityThread(Context base) {
         if (sActivityThread == null) {
             try {
-                Class<?> activityThreadClazz = Class.forName("android.app.ActivityThread");
+                Class<?> activityThreadClazz = ActivityThread.class;
+//                Class<?> activityThreadClazz = Class.forName("android.app.ActivityThread");
                 Object activityThread = null;
                 try {
-                    activityThread = ReflectUtil.getField(activityThreadClazz, null, "sCurrentActivityThread");
+                    activityThread = ActivityThread.currentActivityThread();
+//                    activityThread = ReflectUtil.getField(activityThreadClazz, null, "sCurrentActivityThread");
                 } catch (Exception e) {
-                    // ignored
+                    activityThread = null;
                 }
                 if (activityThread == null) {
+                    Log.d("zt", "activityThread is null");
                     activityThread = ((ThreadLocal<?>) ReflectUtil.getField(activityThreadClazz, null, "sThreadLocal")).get();
+                } else {
+                    Log.d("zt", "activityThread is not null");
                 }
                 sActivityThread = activityThread;
             } catch (Exception e) {
@@ -130,9 +137,16 @@ public class ReflectUtil {
     public static Instrumentation getInstrumentation(Context base) {
         if (getActivityThread(base) != null) {
             try {
-                sInstrumentation = (Instrumentation) ReflectUtil.invoke(
-                        sActivityThread.getClass(), sActivityThread, "getInstrumentation");
+                sInstrumentation = ActivityThread.currentActivityThread().getInstrumentation();
+//                sInstrumentation = (Instrumentation) ReflectUtil.invoke(
+//                        sActivityThread.getClass(), sActivityThread, "getInstrumentation");
             } catch (Exception e) {
+                try {
+                    sInstrumentation = (Instrumentation) ReflectUtil.invoke(
+                            sActivityThread.getClass(), sActivityThread, "getInstrumentation");
+                } catch (Exception e1) {
+                    e1.printStackTrace();
+                }
                 e.printStackTrace();
             }
         }
@@ -163,7 +177,7 @@ public class ReflectUtil {
     public static void setHandlerCallback(Context base, Handler.Callback callback) {
         try {
             Object activityThread = getActivityThread(base);
-            Handler mainHandler = (Handler) ReflectUtil.invoke(activityThread.getClass(), activityThread, "getHandler", (Object[])null);
+            Handler mainHandler = (Handler) ReflectUtil.invoke(activityThread.getClass(), activityThread, "getHandler", (Object[]) null);
             ReflectUtil.setField(Handler.class, mainHandler, "mCallback", callback);
         } catch (Exception e) {
             e.printStackTrace();
